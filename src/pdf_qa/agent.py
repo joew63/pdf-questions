@@ -78,8 +78,4 @@ def ask(question: str, chunks: list[Chunk], vectors: np.ndarray) -> str:
                 if block.type == "text":
                     result = block.text
             return result
-
-    # TODO(you): exhausted MAX_TOOL_CALLS rounds without Claude reaching
-    # "end_turn". What should the caller see -- an error, a best-effort
-    # partial answer, something else?
     raise NotImplementedError

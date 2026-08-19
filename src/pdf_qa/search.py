@@ -65,7 +65,13 @@ def search_pdf(
     # did that once, in cli.py), so the only normalizing left to do is on
     # the query vector just built above.
     normalized_query_vector = array / np.linalg.norm(array)
-    scores = vectors @ normalized_query_vector
+    # This machine's numpy is built against Apple's Accelerate BLAS backend,
+    # which can emit spurious divide-by-zero/overflow/invalid-value warnings
+    # on this matmul even when the result is correct (verified: no NaN/Inf
+    # in the inputs or the output, scores land in a sane cosine-similarity
+    # range). Suppressed here rather than left to print on every query.
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        scores = vectors @ normalized_query_vector
 
     # Pick the top_k highest-scoring chunks. np.argsort(scores) sorts
     # ascending (lowest first), so reverse it to get highest-scoring first.
