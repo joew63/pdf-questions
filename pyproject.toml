@@ -1,0 +1,25 @@
+[project]
+name = "pdf-qa"
+version = "0.1.0"
+description = "Agentic PDF Q&A: the LLM gets a search_pdf tool and decides when to call it."
+requires-python = ">=3.9"
+dependencies = [
+    "PyMuPDF>=1.24",
+    "anthropic>=0.40",
+    "openai>=1.50",
+    "numpy>=1.26",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+ui = ["streamlit>=1.38"]
+
+[project.scripts]
+pdf-qa = "pdf_qa.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

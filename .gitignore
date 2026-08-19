@@ -1,0 +1,20 @@
+.claude/
+CLAUDE.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Env
+.env
+
+# Throwaway scratch scripts
+scratch/
+
+# OS
+.DS_Store
