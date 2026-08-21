@@ -7,9 +7,7 @@ act on it, repeat -- not to decide the answer yourself.
 
 The "how" (branching on stop_reason, building tool_result blocks, message
 shapes) is API mechanics; the "what" (system prompt wording, citation
-enforcement, whether questions share history) is the design work. Still
-open: what ask() should do if MAX_TOOL_CALLS is exhausted without Claude
-reaching "end_turn" (see the raise NotImplementedError at the bottom).
+enforcement, whether questions share history) is the design work.
 """
 
 from __future__ import annotations
@@ -34,6 +32,16 @@ SYSTEM_PROMPT = """
 Always call search_pdf before answering. Use output from search_pdf to answer question. Cite pages where answer was found in the answer.
 """
 
+FALLBACK_PROMPT = """
+Answer from whatever that already has been retrieved. Note that the answer may be incomplete since it ran out of search attempts. Skip the citation mandate.
+"""
+
+def extraction(call):
+    result = ""
+    for block in call.content:
+        if block.type == "text":
+            result = block.text
+    return result
 
 def ask(question: str, chunks: list[Chunk], vectors: np.ndarray) -> str:
     """Answer one question, letting Claude call search_pdf as needed.
@@ -73,9 +81,9 @@ def ask(question: str, chunks: list[Chunk], vectors: np.ndarray) -> str:
             messages.append({"role": "user", "content": result_block})
             continue
         else:
-            result = ""
-            for block in response.content:
-                if block.type == "text":
-                    result = block.text
-            return result
-    raise NotImplementedError
+            return extraction(response)
+
+    fallback = call_llm(
+            messages, system=FALLBACK_PROMPT, effort="medium"
+        )
+    return extraction(fallback)

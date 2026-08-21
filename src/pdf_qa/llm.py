@@ -33,6 +33,7 @@ def call_llm(
     system: str | None = None,
     tools: list[dict] | None = None,
     max_tokens: int = 8192,
+    effort: str | None = None,
 ) -> Message:
     """Send messages (and optional tool definitions) to Claude.
 
@@ -43,7 +44,9 @@ def call_llm(
 
     Note: on Claude Opus 5, thinking is on by default (we don't pass a
     `thinking` param), and max_tokens caps thinking + response text
-    together -- raise it if you see truncated answers.
+    together -- raise it if you see truncated answers. `effort`
+    ("low"/"medium"/"high"/"xhigh"/"max") controls how much of that budget
+    thinking uses; omit it to get the default ("high").
     """
     client = _get_client()
     kwargs: dict = {
@@ -55,5 +58,7 @@ def call_llm(
         kwargs["system"] = system
     if tools:
         kwargs["tools"] = tools
+    if effort:
+        kwargs["output_config"] = {"effort": effort}
 
     return client.messages.create(**kwargs)
