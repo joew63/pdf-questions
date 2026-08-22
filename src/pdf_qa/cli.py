@@ -1,22 +1,17 @@
 """CLI entry point: `pdf-qa <path-to-pdf>` extracts the PDF, builds a
-search index, and drops you into a Q&A loop.
-
-This wires the pipeline together, but the pipeline is only half-built:
-chunking.chunk_pages() and agent.ask() are TODOs (see their docstrings)
-and will raise AttributeError until you implement them. The call
-signatures below are a starting point, not a contract -- change them
-however your agent.py design needs.
+search index, and drops you into a Q&A loop -- or, with `--mode stuff`,
+skips the index entirely and stuffs the whole document into context
+instead (see stuff.py).
 """
 
 from __future__ import annotations
 
 import argparse
-import sys
 
 import numpy as np
 from dotenv import load_dotenv
 
-from pdf_qa import agent, chunking, embeddings, extraction
+from pdf_qa import agent, chunking, embeddings, extraction, stuff
 
 
 def build_index(pdf_path: str) -> tuple[list, np.ndarray]:
@@ -53,7 +48,25 @@ def qa_loop(pdf_path: str) -> None:
         if not question:
             continue
 
-        answer = agent.ask(question, chunks, vectors)  # TODO: implement in agent.py
+        answer = agent.ask(question, chunks, vectors)
+        print(f"\n{answer}\n")
+
+
+def stuff_qa_loop(pdf_path: str) -> None:
+    print(f"Extracting {pdf_path}...")
+    pages = extraction.extract_pages(pdf_path)
+    print(f"Ready. {len(pages)} pages loaded, no index needed. Ask a question (Ctrl+D to quit).\n")
+
+    while True:
+        try:
+            question = input("> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not question:
+            continue
+
+        answer = stuff.ask(question, pages)
         print(f"\n{answer}\n")
 
 
@@ -67,15 +80,14 @@ def main() -> None:
         choices=["rag", "stuff"],
         default="rag",
         help="rag: agentic search over chunks (default). "
-        "stuff: whole PDF in context, no retrieval -- TODO, see stuff.py.",
+        "stuff: whole PDF in context, no retrieval, no embeddings.",
     )
     args = parser.parse_args()
 
     if args.mode == "stuff":
-        print("--mode stuff is not implemented yet -- see stuff.py.", file=sys.stderr)
-        sys.exit(1)
-
-    qa_loop(args.pdf_path)
+        stuff_qa_loop(args.pdf_path)
+    else:
+        qa_loop(args.pdf_path)
 
 
 if __name__ == "__main__":

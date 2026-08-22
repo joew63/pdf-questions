@@ -11,3 +11,20 @@ eventually route to it via a --mode flag (see cli.py).
 """
 
 from __future__ import annotations
+from pdf_qa.extraction import Page
+from pdf_qa.llm import call_llm
+from pdf_qa.agent import extraction
+
+SYSTEM_PROMPT = """
+Read the page_text's reference material before answering. The question to be answered is located last, after the reference material. Cite pages where answer was found in the answer.
+"""
+
+def ask(question: str, pages: list[Page]) -> str:
+    page_text = "Reference Material: "
+    for page in pages:
+        page_text += f"[p. {page.number}]\n{page.text}\n\n"
+    page_text += f"\nQuestion: {question}"
+    messages: list[dict] = [{"role": "user", "content": page_text}]
+
+    response = call_llm(messages, system=SYSTEM_PROMPT)
+    return extraction(response)

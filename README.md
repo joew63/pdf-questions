@@ -43,10 +43,36 @@ src/pdf_qa/
 ├── search.py       search_pdf tool: cosine similarity over chunk embeddings
 ├── llm.py          Claude Messages API wrapper
 ├── agent.py        the tool-use loop -- decides when to search, builds the final answer
-├── stuff.py        whole-PDF-in-context mode, for a cost/quality comparison -- not built yet
-└── cli.py          `pdf-qa <pdf>` entry point
+├── stuff.py        whole-PDF-in-context mode: no retrieval, no chunking, no embeddings
+└── cli.py          `pdf-qa <pdf>` entry point (--mode rag | stuff)
 ```
 
 ## Status
 
-RAG mode (the default) works end to end. `--mode stuff` is stubbed but not implemented.
+Both modes work end to end: `--mode rag` (default) and `--mode stuff`.
+
+## RAG vs. stuff mode
+
+`stuff.py` exists to answer a concrete question: is the retrieval step actually
+worth its complexity, or would just pasting the whole document into context do
+just as well? `scratch/eval_modes.py` runs both modes against the same 9
+hand-labeled questions over `scratch/sample.pdf` (a 12-page document), checking
+whether each answer cites the page the answer actually came from.
+
+| | RAG | Stuff |
+|---|---|---|
+| Citation accuracy | 9/9 | 9/9 |
+| API calls | 18 (2/question) | 9 (1/question) |
+| Total tokens | 23,032 (19,271 in / 3,761 out) | 42,264 (39,949 in / 2,315 out) |
+| Wall time | 54.3s | 32.9s |
+
+On this document, accuracy is a tie. The real tradeoff is cost vs. latency:
+RAG uses **~55% of the tokens** stuff mode does, at the cost of **~1.65x the
+wall-clock time** (two API round trips per question -- a search call, then an
+answer call -- instead of one). Stuff mode's token cost scales with document
+size per question; RAG's stays roughly flat, bounded by how many chunks it
+retrieves. On a 12-page document the gap is already meaningful; on a much
+larger one, stuff mode's cost would keep climbing while RAG's wouldn't.
+
+Reproduce with `python scratch/eval_modes.py` (needs `.env` set up; makes real
+API calls, so it costs a small amount to run).
